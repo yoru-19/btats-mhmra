@@ -3,19 +3,26 @@ const {
   //   recordNotFound,
   //   validationError,
 } = require("../utils/response/errors");
-const { success } = require("../utils/response/response");
+const {
+  success
+} = require("../utils/response/response");
+
 //import createModule from module controller
 const { createModule } = require("./module.controller");
 const Section = require("../models/section.model");
+const Modules = require("../models/Module.model");
+
 // const Module = require("../models/Module.model");
 const { uploadMix, uploadFilesToCloudinary } = require("../services/file-upload.service")
 const Course = require("../models/Course.model")
-const factory = require("../services/factory.service")
+const factory = require("../services/factory.service");
+const { recordNotFound } = require("../utils/response/responseStatus");
 
 const uploadModuleVideos = uploadMix([{ name: "file" }])
 
 const uploadVideosToCloud = asyncHandler(async (req, res, next) => {
   if (req.files.file) {
+    console.log("uploadVedioTo Cloud: " + req.files.file);
     console.log("yess");
     req.body.file = [];
     const veds = req.files.file
@@ -52,14 +59,12 @@ const createSection = asyncHandler(async (req, res) => {
   const newSection = await Section.create({
     courseId: req.body.courseId
   });
-  console.log(" section id");
-  console.log(newSection._id)
 
   // 3- get the course 
   const updatedCourse = await Course.findById(
     req.body.courseId,
   );
-
+  console.log(updatedCourse)
   // 4- Update the corresponding course.sections[] array by pushing new section IDs
   updatedCourse.sections.push(newSection._id)
 
@@ -79,8 +84,21 @@ const createSection = asyncHandler(async (req, res) => {
 * @route GET /api/v1/section
 * @access private [Instructor, Admin]
 */
-const getAllSections = factory.getAll(Section);
+const getAllSections = asyncHandler(async (req, res) => {
+  // 1- get all sections
+  const sections = await Section.find()//populate to courses and modules
 
+  // 3- check if exists
+  if (!sections) {
+    return next(recordNotFound({ message: `no section is found` }))
+  };
+  // 3- send response back
+  const { statusCode, body } = success({
+    message: "get all sections",
+    data: sections,
+  });
+  res.status(statusCode).json(body);
+});
 /**
 * @description get section by id
 * @route GET /api/v1/section
@@ -95,11 +113,9 @@ const getSectionByid = factory.getOne(Section);
 */
 const updateSection = asyncHandler(async (req, res) => {
   //upload files, and update title
-  const sectionId = req.params.id;
-  console.log(sectionId);
 
   try {
-    console.log(req.files.file)
+    const sectionId = req.params.id;
     // Check if files are uploaded
     if (!req.files || !req.files.file || req.files.file.length === 0) {
       // Update section without files
@@ -111,9 +127,7 @@ const updateSection = asyncHandler(async (req, res) => {
           { title: req.body.title },
           { new: true }
         );
-        console.log("title" + req.body.title);
-        if (!req.body.title)
-          console.log("yess");
+
         // 2- send response back
         const { statusCode, body } = success({
           message: "Section updated successfully no files",
@@ -134,17 +148,22 @@ const updateSection = asyncHandler(async (req, res) => {
     const uploadedFiles = req.files.file;
     console.log(uploadedFiles);
 
-    // 2- Get the section.module[] array to store new module IDs
+    // 2- Get the section by id
+    console.log(sectionId)
     const sec = await Section.findById(sectionId);
+    console.log(sec);
+    // 3- get sections modules 
     const moduleIds = sec.modules;
 
     console.log(moduleIds)
 
-    // 3- Iterate through each uploaded file
+    // 4- Iterate through each uploaded file
     for (const file of uploadedFiles) {
+      // 5- create module for each file
       const module = await createModule({ buffer: file.buffer });
       console.log(module);
-      // 4- push module's id into section.moduleIds[] array
+
+      // 6- push module's id into section's moduleIds[] array
       if (module) {
         moduleIds.push(module._id);
       } else {
@@ -155,8 +174,7 @@ const updateSection = asyncHandler(async (req, res) => {
       }
     }
 
-    // 5- Update the section with the module IDs and other details
-
+    // 7- Update the section with the module IDs and other details
     const updatedSection = await Section.findByIdAndUpdate(
       sectionId,
       {
@@ -166,7 +184,7 @@ const updateSection = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    // 6- send response back
+    // 8- send response back
     const { statusCode, body } = success({
       message: "Section updated with files successfully",
       data: updatedSection,
@@ -179,21 +197,101 @@ const updateSection = asyncHandler(async (req, res) => {
   }
 });
 
-
-
 /**
 * @description delete section
 * @route DELETE /api/v1/section
 * @access private [Instructor, Admin]
 */
-const deleteSection = factory.deleteOne(Section);
+const deleteSection = asyncHandler(async (req, res, next) => {
+  try {
+    // 1- Get section by id
+    const sectionId = req.params.id;
+    const section = await Section.findById(sectionId);
+    // 2- check if section exists
+    if (!section) {
+      console.log(section)
+      return next(RecordNotFound({ message: `section with id ${sectionId} is not found` }));
+    }
 
+    // 3- Get associated module IDs
+    const moduleIds = section.modules;
+
+    // 4- Delete each module
+    for (const moduleId of moduleIds) {
+      const deletedModule = await Modules.findByIdAndDelete(moduleId);
+      if (!deletedModule) {
+        console.log(`Module with ID ${moduleId} not found.`);
+      }
+    }
+
+    // 5- delete/pull this section from course
+    await Course.updateMany(
+      { sections: sectionId },
+      { $pull: { sections: sectionId } }
+    );
+
+    // 6- Delete the section itself
+    await Section.findByIdAndDelete(sectionId);
+
+    // 7- Send response back
+    const { statusCode, body } = success({
+      message: 'Section and associated modules deleted successfully',
+    });
+    res.status(statusCode).json(body);
+  } catch (error) {
+    console.error('Error deleting section:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+const deleteSectionById = asyncHandler(async (req, res, next, sectionId) => {
+  try {
+
+    // get section by id
+    const section = await Section.findById(sectionId);
+    // 2- check if section exists
+    if (!section) {
+      console.log(section)
+      return next(recordNotFound({ message: `section with id ${sectionId} is not found` }));
+    }
+
+    // 3- Get associated module IDs
+    const moduleIds = section.modules;
+
+    // 4- Delete each module
+    for (const moduleId of moduleIds) {
+      const deletedModule = await Modules.findByIdAndDelete(moduleId);
+      if (!deletedModule) {
+        console.log(`Module with ID ${moduleId} not found.`);
+      }
+    }
+
+    // 5- delete/pull this section from course
+    await Course.updateMany(
+      { sections: sectionId },
+      { $pull: { sections: sectionId } }
+    );
+
+    // 6- Delete the section itself
+    await Section.findByIdAndDelete(sectionId);
+
+    // 7- Send response back
+    const { statusCode, body } = success({
+      message: 'Section and associated modules deleted successfully',
+    });
+    res.status(statusCode).json(body);
+  } catch (error) {
+    console.error('Error deleting section:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 module.exports = {
   createSection,
   getAllSections,
   getSectionByid,
   updateSection,
   deleteSection,
+  deleteSectionById,
   uploadModuleVideos,
   uploadVideosToCloud
 }

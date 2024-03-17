@@ -2,7 +2,7 @@ const asyncHandler = require("express-async-handler");
 const mongoose = require('mongoose');
 const sharp = require("sharp");
 const { v4: uuid } = require("uuid");
-// const factory = require("../services/factory.service")
+const factory = require("../services/factory.service")
 const {
   recordNotFound,
   validationError,
@@ -10,7 +10,10 @@ const {
 const { success } = require("../utils/response/response");
 const Course = require('../models/Course.model');
 const Category = require('../models/Category.model'); // Import your Category model
-
+const Section = require('../models/section.model'); // Import your Category model
+const {
+  deleteSectionById,
+} = require("../controller/section.controller");
 const {
   uploadToCloudinary,
   uploadMix,
@@ -55,7 +58,7 @@ const resizethumbnailImg = asyncHandler(async (req, res, next) => {
       }
     }
 
-    
+
     // Check if a video trailer file is provided in the request
     if (req.files.videoTrailer) {
       // Upload the video trailer file to Cloudinary
@@ -174,6 +177,7 @@ const getAllCourses = asyncHandler(async (req, res) => {
  */
 const getCourseById = asyncHandler(async (req, res) => {//error
 
+
   const courseId = req.params.id;
 
   const course = await Course.findById(courseId).populate('category').populate('instructor').populate('sections');
@@ -268,9 +272,11 @@ const deleteCourse = asyncHandler(async (req, res, next) => {
   try {
     // 1-delete course by id
     const courseId = req.params.id;
+    const course = await Course.findById(courseId);
 
     // 2- Find and delete the course
     const deletedCourse = await Course.findByIdAndDelete(courseId);
+
 
     // 3- Check if course exists
     if (!deletedCourse) {
@@ -293,11 +299,16 @@ const deleteCourse = asyncHandler(async (req, res, next) => {
       { $pull: { courses: courseId } }
     );
 
-    // 6- Delete modules associated with the course
-    //await Module.deleteMany({ courseId });
-
     // 7- Delete sections associated with the course
-    //await Section.deleteMany({ courseId });
+    const Sections = course.sections;
+
+    // Delete associated sections and modules
+    const sections = course.sections;
+    for (const sectionId of sections) {
+      // Call deleteSection controller for each section
+      await Section.findByIdAndDelete(sectionId);
+      //await deleteSectionById(req, res, next, sectionId);
+    }
 
     // 8- Send response
     const { statusCode, body } = success({

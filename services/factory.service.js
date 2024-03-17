@@ -17,7 +17,7 @@ exports.getOne = (Model, populationOpt) => asyncHandler(async (req, res, next) =
     // 3- check if Model exists
     if (!document) {
         return next(recordNotFound({
-            message: `user with id ${req.params.id} not found`
+            message: `model with id ${req.params.id} not found`
         }));
     }
 
