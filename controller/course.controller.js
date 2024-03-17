@@ -274,8 +274,8 @@ const deleteCourse = asyncHandler(async (req, res, next) => {
     const courseId = req.params.id;
     const course = await Course.findById(courseId);
 
-    // 2- Find and delete the course
-    const deletedCourse = await Course.findByIdAndDelete(courseId);
+    // 2- Find the course by id
+    const deletedCourse = await Course.findById(courseId);
 
 
     // 3- Check if course exists
@@ -310,6 +310,9 @@ const deleteCourse = asyncHandler(async (req, res, next) => {
       //await deleteSectionById(req, res, next, sectionId);
     }
 
+    // delete course
+    await Course.findByIdAndDelete(courseId);
+    
     // 8- Send response
     const { statusCode, body } = success({
       message: "Course, associated modules, and sections deleted successfully",

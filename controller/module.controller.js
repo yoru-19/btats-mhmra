@@ -1,6 +1,8 @@
 const asyncHandler = require("express-async-handler");
 const ffmpeg = require('fluent-ffmpeg');
 const Module = require('../models/Module.model');
+const Section = require('../models/section.model');
+
 const { uploadMix, uploadFilesToCloudinary } = require("../services/file-upload.service")
 const factory = require("../services/factory.service");
 
@@ -99,31 +101,55 @@ const getModuleById = factory.getOne(Module);
  */
 // factory.updateOne(Module);
 const updateModule = asyncHandler(async (req, res, next) => {
-    const moduleId = req.params.id;
-    const updatedModuleData = req.body;
+  const moduleId = req.params.id;
+  const updatedModuleData = req.body;
 
-    try {
-      // Update the module
-      const updatedModule = await Module.findByIdAndUpdate(moduleId, updatedModuleData, { new: true });
+  try {
+    // Update the module
+    const updatedModule = await Module.findByIdAndUpdate(moduleId, updatedModuleData, { new: true });
 
-      // Check if the module exists
-      if (!updatedModule) {
-        return next(recordNotFound({ message: `user with id ${req.params.id} not found` }))
-      }
-      const { statusCode, body } = success({ data: updatedModule })
-      res.status(statusCode).json(body);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Internal Server Error' });
+    // Check if the module exists
+    if (!updatedModule) {
+      return next(recordNotFound({ message: `user with id ${req.params.id} not found` }))
     }
-  });
+    const { statusCode, body } = success({ data: updatedModule })
+    res.status(statusCode).json(body);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 
 /**
  * @description delete module by id
  * @route DELETE /api/v1/coursemodule/:id
  * @access private [Instructor, Admin]
  */
-const deleteModule = factory.deleteOne(Module);
+const deleteModule = asyncHandler(async (req, res, next) => {
+  try {
+
+    const moduleId = req.params.id;
+    // 1- get module by id
+    const module = await Module.findById(moduleId);
+    // 2- check if module exists
+    if (!module) {
+      return next(recordNotFound({ message: `Module with id ${moduleId} not found` }))
+    }
+
+    // 3- Remove module from section's array
+    await Section.updateMany(
+      { modules: moduleId },
+      { $pull: { modules: moduleId } }
+    );
+
+    // 4- delete module
+    await Module.findByIdAndDelete(moduleId);
+    const { statusCode, body } = success({ message: `Module delted successfully` });
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Function to get video duration using fluent-ffmpeg
 const getVideoDuration = (videoUrl) => {
