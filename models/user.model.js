@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
     },
     roles: {
       type: String,
-      enum: ["Instructor", "User"],
+      enum: ["Instructor", "User","Admin"],
       default: "User",
     },
     wishlist: [{

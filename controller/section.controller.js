@@ -224,47 +224,6 @@ const deleteSection = asyncHandler(async (req, res, next) => {
       }
     }
 
-    // 5- delete/pull this section from course
-    await Course.updateMany(
-      { sections: sectionId },
-      { $pull: { sections: sectionId } }
-    );
-
-    // 6- Delete the section itself
-    await Section.findByIdAndDelete(sectionId);
-
-    // 7- Send response back
-    const { statusCode, body } = success({
-      message: 'Section and associated modules deleted successfully',
-    });
-    res.status(statusCode).json(body);
-  } catch (error) {
-    console.error('Error deleting section:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
-  }
-});
-
-const deleteSectionById = asyncHandler(async (req, res, next, sectionId) => {
-  try {
-
-    // get section by id
-    const section = await Section.findById(sectionId);
-    // 2- check if section exists
-    if (!section) {
-      console.log(section)
-      return next(recordNotFound({ message: `section with id ${sectionId} is not found` }));
-    }
-
-    // 3- Get associated module IDs
-    const moduleIds = section.modules;
-
-    // 4- Delete each module
-    for (const moduleId of moduleIds) {
-      const deletedModule = await Modules.findByIdAndDelete(moduleId);
-      if (!deletedModule) {
-        console.log(`Module with ID ${moduleId} not found.`);
-      }
-    }
 
     // 5- delete/pull this section from course
     await Course.updateMany(
@@ -285,13 +244,15 @@ const deleteSectionById = asyncHandler(async (req, res, next, sectionId) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+
+
 module.exports = {
   createSection,
   getAllSections,
   getSectionByid,
   updateSection,
   deleteSection,
-  deleteSectionById,
   uploadModuleVideos,
   uploadVideosToCloud
 }

@@ -10,10 +10,9 @@ const {
 const { success } = require("../utils/response/response");
 const Course = require('../models/Course.model');
 const Category = require('../models/Category.model'); // Import your Category model
-const Section = require('../models/section.model'); // Import your Category model
-const {
-  deleteSectionById,
-} = require("../controller/section.controller");
+const Section = require('../models/section.model'); // Import your Category model Module
+const Module = require('../models/Module.model'); // Import your Category model Module
+
 const {
   uploadToCloudinary,
   uploadMix,
@@ -99,17 +98,18 @@ const createCourse = asyncHandler(async (req, res, next) => {
     // 1- Extract required fields from the request body
     const { title, subTitle, category, language, level } = req.body;
     const { _id } = req.user;//instrucotr id
-
+    console.log(_id)
     // 2- Create the course using the extracted fields
     const newCourse = await Course.create({
-      title,
+      title: title,
       subTitle,
       category,
       language,
       level,
-      _id
+      instructor: _id
     });
 
+    console.log(newCourse);
     // 3- Update the category with the new course
     const updatedCategory = await Category.findByIdAndUpdate(
       category,
@@ -119,7 +119,7 @@ const createCourse = asyncHandler(async (req, res, next) => {
 
     // 4- get the instructor by id
     const Instructor = await User.findById(_id);
-
+    console.log(Instructor);
     // 5- get instructor courses
     const instructorCourses = Instructor.courses;
 
@@ -302,18 +302,25 @@ const deleteCourse = asyncHandler(async (req, res, next) => {
     // 7- Delete sections associated with the course
     const Sections = course.sections;
 
-    // Delete associated sections and modules
+    // 8 - iterate over all sections
     const sections = course.sections;
     for (const sectionId of sections) {
-      // Call deleteSection controller for each section
-      await Section.findByIdAndDelete(sectionId);
-      //await deleteSectionById(req, res, next, sectionId);
+      // 9- get section
+      const sec = await Section.findById(sectionId);
+      // 10- get section's modules
+      const secModules = sec.modules;
+      // 11- iterate through modules and delete each
+      for (const module of secModules) {
+        await Module.findByIdAndDelete(module);
+      }
+      // 12- delete section
+      await Section.findByIdAndDelete(sectionId)
     }
 
-    // delete course
+    // 13- delete course
     await Course.findByIdAndDelete(courseId);
-    
-    // 8- Send response
+
+    // 14- Send response
     const { statusCode, body } = success({
       message: "Course, associated modules, and sections deleted successfully",
     });
