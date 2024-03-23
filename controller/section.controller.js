@@ -113,7 +113,6 @@ const getSectionByid = factory.getOne(Section);
 */
 const updateSection = asyncHandler(async (req, res) => {
   //upload files, and update title
-
   try {
     const sectionId = req.params.id;
     // Check if files are uploaded
@@ -140,30 +139,26 @@ const updateSection = asyncHandler(async (req, res) => {
       }
     }
 
-    // Log the entire req.files object for debugging
-    console.log("req.files:", req.files);
-
     // Assuming the uploaded files are in req.files.file
     // 1- get the files
     const uploadedFiles = req.files.file;
     console.log(uploadedFiles);
 
     // 2- Get the section by id
-    console.log(sectionId)
     const sec = await Section.findById(sectionId);
-    console.log(sec);
+
     // 3- get sections modules 
     const moduleIds = sec.modules;
 
-    console.log(moduleIds)
-
     // 4- Iterate through each uploaded file
     for (const file of uploadedFiles) {
-      // 5- create module for each file
-      const module = await createModule({ buffer: file.buffer });
+      // 5- get the name of the uploaded file
+      const Name = file.originalname;
+      // 6- create module for each file
+      const module = await createModule({ file, Name });
       console.log(module);
 
-      // 6- push module's id into section's moduleIds[] array
+      // 7- push module's id into section's moduleIds[] array
       if (module) {
         moduleIds.push(module._id);
       } else {
@@ -174,7 +169,7 @@ const updateSection = asyncHandler(async (req, res) => {
       }
     }
 
-    // 7- Update the section with the module IDs and other details
+    // 8- Update the section with the module IDs and other details
     const updatedSection = await Section.findByIdAndUpdate(
       sectionId,
       {
@@ -184,7 +179,7 @@ const updateSection = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    // 8- send response back
+    // 9- send response back
     const { statusCode, body } = success({
       message: "Section updated with files successfully",
       data: updatedSection,
@@ -223,7 +218,6 @@ const deleteSection = asyncHandler(async (req, res, next) => {
         console.log(`Module with ID ${moduleId} not found.`);
       }
     }
-
 
     // 5- delete/pull this section from course
     await Course.updateMany(

@@ -43,12 +43,13 @@ const uploadVideosToCloud = asyncHandler(async (req, res, next) => {
  * @route POST /api/v1/coursemodule
  * @access private [Instructor, Admin]
  */
-const createModule = async (file) => {
-
+const createModule = async ({file,Name}) => {
   try {
+    // 1- upload the vedio to cloudnary
     const result = await uploadFilesToCloudinary(file.buffer, "modules");
-    console.log("result: ", result);
+    console.log("RESULTTTTTT: ", result);
 
+    // 2- check if exists
     if (result && result.public_id && result.secure_url) {
 
       //continue later
@@ -56,8 +57,10 @@ const createModule = async (file) => {
       //const Duration = await getVideoDuration(result.secure_url);
       //console.log("duration in the create")
       //  console.log(Duration)
-      // Create the module in the database
+
+      // 3- Create the module in the database
       const newModule = await Module.create({
+        name: Name,
         file: {
           filename: result.public_id,
           path: result.secure_url,
@@ -103,14 +106,14 @@ const getModuleById = factory.getOne(Module);
 const updateModule = asyncHandler(async (req, res, next) => {
   const moduleId = req.params.id;
   const updatedModuleData = req.body;
-
+  console.log(moduleId, updatedModuleData);
   try {
     // Update the module
     const updatedModule = await Module.findByIdAndUpdate(moduleId, updatedModuleData, { new: true });
 
     // Check if the module exists
     if (!updatedModule) {
-      return next(recordNotFound({ message: `user with id ${req.params.id} not found` }))
+      return next(recordNotFound({ message: `module with id ${req.params.id} not found` }))
     }
     const { statusCode, body } = success({ data: updatedModule })
     res.status(statusCode).json(body);

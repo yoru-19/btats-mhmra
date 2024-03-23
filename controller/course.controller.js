@@ -12,12 +12,13 @@ const Course = require('../models/Course.model');
 const Category = require('../models/Category.model'); // Import your Category model
 const Section = require('../models/section.model'); // Import your Category model Module
 const Module = require('../models/Module.model'); // Import your Category model Module
+const User = require("../models/user.model");
 
 const {
   uploadToCloudinary,
   uploadMix,
 } = require("../services/file-upload.service");
-const User = require("../models/user.model");
+
 
 //handles uploading thumbnail and vedioTrailer
 const uploadtBoth = uploadMix([{ name: 'thumbnail', maxCount: 1 }, { name: 'videoTrailer', maxCount: 1 }]);
@@ -214,6 +215,11 @@ const updateCourse = asyncHandler(async (req, res, next) => {
 
     if (req.body.instructor !== courseId.instructor) {
       updatedCourseData.instructor = req.body.instructor;
+      // push this course to the instructor courses
+      await User.updateMany(
+        { _id: req.body.instructor },
+        { $push: { courses: courseId } }
+      );
     }
     if (req.body.title !== courseId.title) {
       updatedCourseData.title = req.body.title;
@@ -223,6 +229,11 @@ const updateCourse = asyncHandler(async (req, res, next) => {
     }
     if (req.body.category !== courseId.category) {
       updatedCourseData.category = req.body.category;
+      // push this course to the category courses
+      await Category.updateMany(
+        { _id: req.body.category },
+        { $push: { courses: courseId } }
+      );
     }
     if (req.body.language !== courseId.language) {
       updatedCourseData.language = req.body.language;
@@ -252,6 +263,9 @@ const updateCourse = asyncHandler(async (req, res, next) => {
     if (req.body.requirements !== courseId.requirements) {
       updatedCourseData.requirements = req.body.requirements;
     }
+    if (req.body.ratingsAverage !== courseId.ratingsAverage) {
+      updatedCourseData.ratingsAverage = req.body.ratingsAverage;
+    }
     //3- Update course by id with the constructed update object
     const updatedData = await Course.findByIdAndUpdate(courseId, updatedCourseData, { new: true });
 
@@ -270,9 +284,8 @@ const updateCourse = asyncHandler(async (req, res, next) => {
  */
 const deleteCourse = asyncHandler(async (req, res, next) => {
   try {
-    // 1-delete course by id
+    // 1- get course id
     const courseId = req.params.id;
-    const course = await Course.findById(courseId);
 
     // 2- Find the course by id
     const deletedCourse = await Course.findById(courseId);
@@ -300,21 +313,25 @@ const deleteCourse = asyncHandler(async (req, res, next) => {
     );
 
     // 7- Delete sections associated with the course
-    const Sections = course.sections;
+    //const Sections = deletedCourse.sections;
 
     // 8 - iterate over all sections
-    const sections = course.sections;
+    const sections = deletedCourse.sections;
     for (const sectionId of sections) {
       // 9- get section
       const sec = await Section.findById(sectionId);
       // 10- get section's modules
-      const secModules = sec.modules;
-      // 11- iterate through modules and delete each
-      for (const module of secModules) {
-        await Module.findByIdAndDelete(module);
+
+      if (sec) {
+        const secModules = sec.modules;
+        // 11- iterate through modules and delete each
+        for (const module of secModules) {
+          await Module.findByIdAndDelete(module);
+        }
+        // 12- delete section
+        await Section.findByIdAndDelete(sectionId)
       }
-      // 12- delete section
-      await Section.findByIdAndDelete(sectionId)
+
     }
 
     // 13- delete course
@@ -408,24 +425,23 @@ const getCoursesInCategory = asyncHandler(async (req, res, next) => {//not finis
     // 3- get the category courses
     const courses = categoryWithCourses.courses;
 
-    // 4- map through each course and get the id, title, thumbnail, price, ratingsAvaerage, and instructorName
-    const formattedCourses = courses.map(course => (
-      console.log(course._id),
-      console.log(course.thumbnail),
-      console.log(course.instructor),
-      {
-        _id: course._id,
-        title: course.title,
-        thumbnail: course.thumbnail,
-        price: course.price || 0,
-        ratingsAverage: course.ratingsAverage || 0,
-        // instructorName: course.instructor.name,
-      }));
+    // 4- get courses by id
+    const cours = await Course.findById(courses);
+    console.log(cours)
+    // 5- map through each course and get the id, title, thumbnail, price, ratingsAvaerage, and instructorName
+    const formattedCourses = courses.map(course => ({
+      _id: course,
+      title: cours.title,
+      thumbnail: cours.thumbnail,
+      price: cours.price || 0,
+      ratingsAverage: cours.ratingsAverage || 0,
+      //instructorName: instructor.name,
+    }));
 
     // 5- return response
     const { statusCode, body } = success({
       message: 'Instructor courses',
-      data: formattedCourses,
+      data: { results: formattedCourses },
     });
     res.status(statusCode).json(body);
   } catch (error) {
@@ -457,8 +473,8 @@ const getCoursesInCategory = asyncHandler(async (req, res, next) => {//not finis
  */
 const getCoursesByInstructor = asyncHandler(async (req, res, next) => {
   try {
-
-    const { _id } = req.user; // Assuming the authenticated user's ID is available in req.user
+    // get instructor id
+    const { _id } = req.user;
     // 1- get instructor by id
     const instructor = await User.findById(_id);
 
@@ -469,19 +485,23 @@ const getCoursesByInstructor = asyncHandler(async (req, res, next) => {
 
     // 3- get the instructor courses
     const courses = instructor.courses; // Array of courses for the instructor
-    // 4- map through each course and get the id, title, thumbnail, price, ratingsAvaerage, and instructorName
+    console.log(courses)
+    // 4- get courses by id
+    const cours = await Course.findById(courses);
+    console.log(cours)
+    // 5- map through each course and get the id, title, thumbnail, price, ratingsAvaerage, and instructorName
     const formattedCourses = courses.map(course => ({
-      _id: course._id,
-      title: course.title,
-      thumbnail: course.thumbnail,
-      price: course.price || 0,
-      ratingsAverage: course.ratingsAverage || 0,
+      _id: course,
+      title: cours.title,
+      thumbnail: cours.thumbnail,
+      price: cours.price || 0,
+      ratingsAverage: cours.ratingsAverage || 0,
       instructorName: instructor.name,
     }));
-    // 5- return response
+    // 6- return response
     const { statusCode, body } = success({
       message: 'Instructor courses',
-      data: formattedCourses,
+      data: { results: formattedCourses },
     });
     res.status(statusCode).json(body);
   } catch (error) {
@@ -489,6 +509,35 @@ const getCoursesByInstructor = asyncHandler(async (req, res, next) => {
   }
 });
 
+const clearCatogrySections = asyncHandler(async (req, res, next) => {
+  try {
+    const catogory = await Category.findById(req.params.id);
+
+    const courses = catogory.courses;
+    console.log(courses)
+
+    if (!courses) {
+      return next(recordNotFound({ message: 'Courses not found' }))
+    }
+
+    for (const coursesId of courses) {
+
+      await Category.updateMany(
+        { courses: coursesId },
+        { $pull: { courses: coursesId } }
+      );
+
+    }
+    const { statusCode, body } = success({
+      message: 'catogery courses pulled successfully',
+
+    });
+    res.status(statusCode).json(body);
+  }
+  catch (error) {
+    next(error);
+  }
+});
 
 module.exports = {
   getAllCourses,
@@ -501,5 +550,6 @@ module.exports = {
   addCourseToWishlist,
   getLoggedUserWishlist,
   getCoursesInCategory,
-  getCoursesByInstructor
+  getCoursesByInstructor,
+  clearCatogrySections
 };

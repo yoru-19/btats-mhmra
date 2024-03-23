@@ -160,15 +160,15 @@ exports.refresh = asyncHandler(async function (req, res, next) {
  */
 exports.logout = asyncHandler(async function (req, res, next) {
   // 1- get refresh token from cookie
-  const jwtToken = req.cookies["jwt"];
+  const refreshToken = req.cookies["refreshToken"];
 
-  // 2- check if token exists
-  if (!jwtToken) {
-    return next(failure({ message: "Token not found" }));
+  // 2- check if refresh token exists
+  if (!refreshToken) {
+    return next(failure({ message: "Refresh token not found" }));
   }
 
   // 3- check if user exists
-  const decoded = jwt.decode(jwtToken);
+  const decoded = jwt.decode(refreshToken);
 
   const credentials = await UserCredential.findOne({ user: decoded.userId });
 
@@ -177,23 +177,35 @@ exports.logout = asyncHandler(async function (req, res, next) {
   }
 
   // 4- check if token exists in credentials
-  if (!credentials.tokens.includes(jwtToken)) {
+  if (!credentials.tokens.includes(refreshToken)) {
     return next(unAuthorized());
   }
 
-  // 5- remove token from credentials
-  const tokenIndex = credentials.tokens.indexOf(jwtToken);
-  credentials.tokens.splice(tokenIndex, 1);
+  // 5- remove tokens from credentials
+  const refreshTokenIndex = credentials.tokens.indexOf(refreshToken);
+  credentials.tokens.splice(refreshTokenIndex, 1);
+
+  // 6- remove access token from credentials
+  const accessTokenIndex = credentials.tokens.indexOf(decoded.accessToken);
+  if (accessTokenIndex !== -1) {
+    credentials.tokens.splice(accessTokenIndex, 1);
+  }
+
   await credentials.save();
 
-  // 6- remove token from cookies
-  res.clearCookie("jwt", {
+  // 7- remove tokens from cookies
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  });
+  res.clearCookie("accessToken", {
     httpOnly: true,
     secure: true,
     sameSite: "none",
   });
 
-  // 7- send response
+  // 8- send response
   const { body, statusCode } = success();
   res.status(statusCode).json(body);
 });

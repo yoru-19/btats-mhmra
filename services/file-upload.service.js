@@ -55,7 +55,6 @@ exports.uploadToCloudinary = async (fileBuffer, filename, folder = "") => {
   });
 };
 
-
 exports.uploadFilesToCloudinary = async (fileBuffer, folder = "") => {
   return await new Promise((resolve) => {
     const pk = `module-${uuid()}-${Date.now()}`;

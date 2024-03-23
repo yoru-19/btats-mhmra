@@ -30,7 +30,7 @@ exports.resizeProfileImage = asyncHandler(async (req, res, next) => {
   const filename = `user-${uuid()}-${Date.now()}.jpeg`;
 
   if (req.file) {
-    if (!req.file.mimetype.startsWith("image") && req.file.mimetype !==  'application/octet-stream') {
+    if (!req.file.mimetype.startsWith("image") && req.file.mimetype !== 'application/octet-stream') {
       return next(validationError({ message: "Only image files are allowed" }));
     }
 
@@ -95,8 +95,7 @@ exports.getUser = getOne(User);
  * @description (update user by id) profile 
  * @route PUT /api/v1/users/:id
  * @access private [admin]
- */ 
-
+ */
 exports.updateUser = asyncHandler(async (req, res, next) => {
   try {
     // 1- Update userCredentials for provider id and return data after update (new one)
@@ -125,19 +124,19 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
     if (req.body.name !== existingUser.name) {
       updateObject.name = req.body.name;
     }
-    if (req.body.email  !== existingUser.email) {
+    if (req.body.email !== existingUser.email) {
       updateObject.email = req.body.email;
     }
     if (req.body.bio !== existingUser.bio) {
       updateObject.bio = req.body.bio;
     }
-    if (req.body.phone  !== existingUser.phone) {
+    if (req.body.phone !== existingUser.phone) {
       updateObject.phone = req.body.phone;
     }
-    if (req.body.gender  !== existingUser.gender) {
+    if (req.body.gender !== existingUser.gender) {
       updateObject.gender = req.body.gender;
     }
-    if (req.body.profileImage  !== existingUser.profileImage) {
+    if (req.body.profileImage !== existingUser.profileImage) {
       updateObject.profileImage = req.body.profileImage;
     }
     if (req.body.jobTitle !== existingUser.jobTitle) {
@@ -268,6 +267,7 @@ exports.updateLoggedUserPassword = asyncHandler(async (req, res, next) => {
 
   // 2- check if old password is correct
   if (!(await user.comparePassword(req.body.oldPassword))) next(unAuthorized());
+  console.log("old password: " + req.body.oldPassword + " is true");
 
   // 3- update user password and password changed at and empty all tokens
   user.password = req.body.newPassword;
@@ -299,7 +299,7 @@ exports.updateLoggedUserPassword = asyncHandler(async (req, res, next) => {
  * @access protected [user]
  */
 exports.deleteLoggedUser = asyncHandler(async (req, res) => {
-  
+
   // 1- set active state to false for user
   await UserCredential.findOneAndUpdate(
     { user: req.user._id },

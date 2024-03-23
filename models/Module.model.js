@@ -5,15 +5,9 @@ const mongoose = require('mongoose');
 const moduleSchema = new mongoose.Schema(
 
   {
-    /*section: [
-      {
-        type: mongoose.Types.ObjectId,
-        ref: "section",
-      },],*/
-
     name: {
       type: String,
-      unique: true, // Ensure uniqueness of the 'name' field
+      //unique: true, 
     },
     
     isFree: {

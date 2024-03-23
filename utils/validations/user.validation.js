@@ -211,7 +211,7 @@ exports.updateLoggedUserPasswordValidator = [
     .notEmpty()
     .withMessage("confirm password is required")
     .custom((input, { req }) => {
-      return req.body.password === input;
+      return req.body.newPassword === input;
     }),
     validatorMiddleware,
 ];
