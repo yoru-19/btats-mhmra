@@ -42,7 +42,6 @@ const uploadVideosToCloud = asyncHandler(async (req, res, next) => {
   next();
 })
 
-
 /**
  * @description create new section
  * @route POST /api/v1/section
@@ -86,7 +85,7 @@ const createSection = asyncHandler(async (req, res) => {
 */
 const getAllSections = asyncHandler(async (req, res) => {
   // 1- get all sections
-  const sections = await Section.find()//populate to courses and modules
+  const sections = await Section.find().populate('modules', 'name');//populate to courses and modules
 
   // 3- check if exists
   if (!sections) {
@@ -104,8 +103,19 @@ const getAllSections = asyncHandler(async (req, res) => {
 * @route GET /api/v1/section
 * @access private [Instructor, Admin]
 */
-const getSectionByid = factory.getOne(Section);
+const getSectionByid = asyncHandler(async (req, res) => {
 
+
+  const sectionId = req.params.id;
+
+  const section = await Section.findById(sectionId).populate('modules', 'name');
+
+
+  const { body, statusCode } = success({
+    data: { results: section },
+  });
+  res.status(statusCode).json(body);
+});
 /**
 * @description update section
 * @route PUT /api/v1/section

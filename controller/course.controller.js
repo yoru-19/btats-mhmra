@@ -171,25 +171,50 @@ const getAllCourses = asyncHandler(async (req, res) => {
   res.status(statusCode).json(body);
 });
 
+
 /**
  * @description get course by id
  * @route GET /api/v1/course/:id
  * @access private [Instructor, Admin]
  */
-const getCourseById = asyncHandler(async (req, res) => {//error
+const getCourseById = asyncHandler(async (req, res) => {
+  try {
+    const courseId = req.params.id;
 
+    // Find the course by ID and populate the 'modules' field with the complete module objects
+    const course = await Course.findById(courseId).populate({
+      path: 'sections',
+      populate: {
+        path: 'modules',
+        model: 'Module',
+        select: 'name _id', // Specify the fields you want to include in the populated modules
+      },
+    });
 
-  const courseId = req.params.id;
+    if (!course) {
+      return next(recordNotFound({ message: `Course with id ${req.params.id} not found` }));
+    }
 
-  const course = await Course.findById(courseId).populate('category').populate('instructor').populate('sections');
+    // Extract the populated modules from each section and format them as desired
+    const formattedModules = [];
+    course.sections.forEach(section => {
+      section.modules.forEach(module => {
+        formattedModules.push({ name: module.name, id: module._id });
+      });
+    });
 
-  console.log(course)
+    // Replace the original modules array in the course object with the formatted one
+    course.modules = formattedModules;
 
-  const { body, statusCode } = success({
-    data: { results: course },
-  });
-  res.status(statusCode).json(body);
+    const { body, statusCode } = success({
+      data: { results: course },
+    });
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
 });
+
 
 /**
  * @description update course by id
