@@ -51,7 +51,7 @@ const courseSchema = new mongoose.Schema({
   },
   targetAudience: {
     type: String,
-   // required: true,
+    // required: true,
   },
   requirements: {
     type: String,
@@ -60,7 +60,7 @@ const courseSchema = new mongoose.Schema({
   // second page
 
   sections: [{ type: mongoose.Types.ObjectId, ref: "Section" }],
-  
+
   ratingsAverage: {
     type: Number,
     min: [1, "Rating must be above or equal 1.0"],
@@ -70,7 +70,7 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  price:{
+  price: {
     type: Number,
     default: 0,
   }

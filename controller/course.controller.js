@@ -187,7 +187,7 @@ const getCourseById = asyncHandler(async (req, res) => {
       populate: {
         path: 'modules',
         model: 'Module',
-        select: 'name _id', // Specify the fields you want to include in the populated modules
+        select: 'name _id isFree', // Specify the fields you want to include in the populated modules
       },
     });
 

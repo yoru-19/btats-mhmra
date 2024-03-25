@@ -108,8 +108,10 @@ const getSectionByid = asyncHandler(async (req, res) => {
 
   const sectionId = req.params.id;
 
-  const section = await Section.findById(sectionId).populate('modules', 'name');
-
+  const section = await Section.findById(sectionId).populate({
+    path: 'modules',
+    select: 'name file.path isFree'
+  });
 
   const { body, statusCode } = success({
     data: { results: section },
