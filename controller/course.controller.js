@@ -182,7 +182,7 @@ const getCourseById = asyncHandler(async (req, res) => {
     const courseId = req.params.id;
 
     // Find the course by ID and populate the 'modules' field with the complete module objects
-    const course = await Course.findById(courseId).populate({
+    const course = await Course.findById(courseId).populate('instructor').populate({
       path: 'sections',
       populate: {
         path: 'modules',
