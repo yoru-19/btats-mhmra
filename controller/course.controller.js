@@ -177,7 +177,7 @@ const getAllCourses = asyncHandler(async (req, res) => {
  * @route GET /api/v1/course/:id
  * @access private [Instructor, Admin]
  */
-const getCourseById = asyncHandler(async (req, res) => {
+const getCourseById = asyncHandler(async (req, res,next) => {
   try {
     const courseId = req.params.id;
 
@@ -314,7 +314,6 @@ const deleteCourse = asyncHandler(async (req, res, next) => {
 
     // 2- Find the course by id
     const deletedCourse = await Course.findById(courseId);
-
 
     // 3- Check if course exists
     if (!deletedCourse) {

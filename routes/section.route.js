@@ -31,7 +31,6 @@ router.use(allowedRoles("Instructor", "Admin"));
 router.route("/")
     .get(getAllSections)
     .post(
-        //uploadModuleVideos,
         createSectionValidator,
         createSection)
 
