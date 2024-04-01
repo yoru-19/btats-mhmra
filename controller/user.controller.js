@@ -19,37 +19,50 @@ const {
 const {
   uploadSingle,
   uploadToCloudinary,
+  uploadMix,
 } = require("../services/file-upload.service");
 
 const { getAll, getOne } = require("../services/factory.service");
 const UserCredentials = require("../models/userCredential.model");
 
 exports.uploadProfileImage = uploadSingle("profileImage");
+//uploadMix([{ name: 'profileImage', maxCount: 1 }]);
 
 exports.resizeProfileImage = asyncHandler(async (req, res, next) => {
-  const filename = `user-${uuid()}-${Date.now()}.jpeg`;
+  try {
+    const filename = `user-${uuid()}-${Date.now()}.jpeg`;
 
-  if (req.file) {
-    if (!req.file.mimetype.startsWith("image") && req.file.mimetype !== 'application/octet-stream') {
-      return next(validationError({ message: "Only image files are allowed" }));
+    if (req.file) {
+      if (!req.file.mimetype.startsWith("image") && req.file.mimetype !== 'application/octet-stream') {
+        return next(validationError({ message: "Only image files are allowed" }));
+      }
+
+      const img = await sharp(req.file.buffer)
+        .resize(600, 600)
+        .toFormat("jpeg")
+        .jpeg({ quality: 95 });
+
+      const data = await uploadToCloudinary(
+        await img.toBuffer(),
+        filename,
+        "users"
+      );
+
+      // Check if 'data' is defined before accessing 'secure_url'
+      if (data && data.secure_url) {
+        // Save image into our db
+        req.body.profileImage = data.secure_url;
+      } else {
+        return next(validationError({
+          message: "Error uploading profile image"
+        }));
+      }
     }
 
-    const img = await sharp(req.file.buffer)
-      .resize(600, 600)
-      .toFormat("jpeg")
-      .jpeg({ quality: 95 });
-
-    const data = await uploadToCloudinary(
-      await img.toBuffer(),
-      filename,
-      "users"
-    );
-
-    // Save image into our db
-    req.body.profileImage = data.secure_url;
+    next();
+  } catch (err) {
+    next(err);
   }
-
-  next();
 });
 
 /**
@@ -98,6 +111,7 @@ exports.getUser = getOne(User);
  */
 exports.updateUser = asyncHandler(async (req, res, next) => {
   try {
+    console.log("henaaa")
     // 1- Update userCredentials for provider id and return data after update (new one)
     if (req.body.email) {
       await UserCredentials.findOneAndUpdate(
@@ -107,8 +121,10 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       );
     }
 
+    const userId = req.params.id;
     // 2- Fetch the existing user data from the database
-    const existingUser = await User.findById(req.params.id);
+    const existingUser = await User.findById(userId);
+    console.log("henna")
 
     // 3- Check if the user exists
     if (!existingUser) {
@@ -118,40 +134,46 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
         })
       );
     }
-
+    console.log(existingUser);
+    console.log(existingUser.profileImage);
     // 4- Construct an update object with only the allowed fields that have different values
     const updateObject = {};
-    if (req.body.name !== existingUser.name) {
+    if (req.body.name !== userId.name) {
       updateObject.name = req.body.name;
     }
-    if (req.body.email !== existingUser.email) {
+    if (req.body.email !== userId.email) {
       updateObject.email = req.body.email;
     }
-    if (req.body.bio !== existingUser.bio) {
+    if (req.body.bio !== userId.bio) {
       updateObject.bio = req.body.bio;
     }
-    if (req.body.phone !== existingUser.phone) {
+    if (req.body.phone !== userId.phone) {
       updateObject.phone = req.body.phone;
     }
-    if (req.body.gender !== existingUser.gender) {
+    if (req.body.gender !== userId.gender) {
       updateObject.gender = req.body.gender;
     }
-    if (req.body.profileImage !== existingUser.profileImage) {
+    console.log(userId.profileImage);
+    console.log(req.body.profileImage);
+    if (req.body.profileImage !== userId.profileImage) {
+      console.log("gowa");
+      console.log(userId.profileImage);
+      console.log(req.body.profileImage);
       updateObject.profileImage = req.body.profileImage;
     }
-    if (req.body.jobTitle !== existingUser.jobTitle) {
+    if (req.body.jobTitle !== userId.jobTitle) {
       updateObject.jobTitle = req.body.jobTitle;
     }
-    if (req.body.jobDescription !== existingUser.jobDescription) {
+    if (req.body.jobDescription !== userId.jobDescription) {
       updateObject.jobDescription = req.body.jobDescription;
     }
-    if (req.body.facebookUrl !== existingUser.facebookUrl) {
+    if (req.body.facebookUrl !== userId.facebookUrl) {
       updateObject.facebookUrl = req.body.facebookUrl;
     }
-    if (req.body.linkedinUrl !== existingUser.linkedinUrl) {
+    if (req.body.linkedinUrl !== userId.linkedinUrl) {
       updateObject.linkedinUrl = req.body.linkedinUrl;
     }
-    if (req.body.instagramUrl !== existingUser.instagramUrl) {
+    if (req.body.instagramUrl !== userId.instagramUrl) {
       updateObject.instagramUrl = req.body.instagramUrl;
     }
 

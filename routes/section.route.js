@@ -7,6 +7,7 @@ const {
     deleteSection,
     uploadModuleVideos,
     uploadVideosToCloud,
+    secDuration
 } = require("../controller/section.controller");
 
 const { protect, allowedRoles } = require("../services/auth.service");
@@ -48,5 +49,8 @@ router.route("/:id")
         deleteSectionValidator,
         deleteSection
     );
+
+router.route("/calculate-duration/:id")
+    .put(secDuration)
 
 module.exports = router;

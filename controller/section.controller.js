@@ -1,22 +1,16 @@
 const asyncHandler = require("express-async-handler");
-const {
-  //   recordNotFound,
-  //   validationError,
-} = require("../utils/response/errors");
-const {
-  success
-} = require("../utils/response/response");
+const { recordNotFound, } = require("../utils/response/errors");
+const { success } = require("../utils/response/response");
 
 //import createModule from module controller
 const { createModule } = require("./module.controller");
 const Section = require("../models/section.model");
-const Modules = require("../models/Module.model");
+//const Modules = require("../models/Module.model");
 
-// const Module = require("../models/Module.model");
+const { Module } = require("../models/Module.model")
 const { uploadMix, uploadFilesToCloudinary } = require("../services/file-upload.service")
 const Course = require("../models/Course.model")
 const factory = require("../services/factory.service");
-const { recordNotFound } = require("../utils/response/responseStatus");
 
 const uploadModuleVideos = uploadMix([{ name: "file" }])
 
@@ -123,7 +117,7 @@ const getSectionByid = asyncHandler(async (req, res) => {
 * @route PUT /api/v1/section
 * @access private [Instructor, Admin]
 */
-const updateSection = asyncHandler(async (req, res) => {
+const updateSection = asyncHandler(async (req, res, next) => {
   //upload files, and update title
   try {
     const sectionId = req.params.id;
@@ -145,6 +139,7 @@ const updateSection = asyncHandler(async (req, res) => {
           data: updatedSection,
         });
         return res.status(statusCode).json(body);
+
       } catch (error) {
         console.error("Error updating section:", error);
         return res.status(500).json({ message: "Internal Server Error" });
@@ -159,6 +154,9 @@ const updateSection = asyncHandler(async (req, res) => {
     // 2- Get the section by id
     const sec = await Section.findById(sectionId);
 
+    if(!sec){
+      return next(recordNotFound({message:"there is no section with id " + sectionId}))
+    }
     // 3- get sections modules 
     const moduleIds = sec.modules;
 
@@ -166,13 +164,24 @@ const updateSection = asyncHandler(async (req, res) => {
     for (const file of uploadedFiles) {
       // 5- get the name of the uploaded file
       const Name = file.originalname;
+      const isFree = req.body.isFree;
       // 6- create module for each file
-      const module = await createModule({ file, Name });
+      const module = await createModule({ file, Name, isFree });
       console.log(module);
 
       // 7- push module's id into section's moduleIds[] array
       if (module) {
         moduleIds.push(module._id);
+        // get module duration
+        const modHours = module.duration.hours;
+        const modMinutes = module.duration.minutes;
+        const modSeconds = module.duration.seconds;
+        // update section duration
+        sec.sectionDuration.hours += modHours;
+        sec.sectionDuration.minutes += modMinutes;
+        sec.sectionDuration.seconds += modSeconds;
+        // save section
+        await sec.save();
       } else {
         // Handle the case where module creation failed
         console.error(`Failed to create module for file: ${file.originalname}`);
@@ -180,7 +189,15 @@ const updateSection = asyncHandler(async (req, res) => {
         return res.status(500).json({ message: `Failed to create module for file: ${file.originalname}` });
       }
     }
-
+    // get course by id 
+    const course = await Course.findById(sec.courseId);
+    console.log(course)
+    //update section duration of course
+    course.duration.hours += sec.sectionDuration.hours;
+    course.duration.minutes += sec.sectionDuration.minutes
+    course.duration.seconds += sec.sectionDuration.seconds
+    //save course
+    await course.save();
     // 8- Update the section with the module IDs and other details
     const updatedSection = await Section.findByIdAndUpdate(
       sectionId,
@@ -190,7 +207,7 @@ const updateSection = asyncHandler(async (req, res) => {
       },
       { new: true }
     );
-
+    // updatedSection.save();
     // 9- send response back
     const { statusCode, body } = success({
       message: "Section updated with files successfully",
@@ -251,7 +268,81 @@ const deleteSection = asyncHandler(async (req, res, next) => {
   }
 });
 
+// const secDur = asyncHandler(async (req, res, next) => {
+//   try {
+//     console.log("helllloooooo")
+//     const secID = req.params.id;
 
+//     const Section= await Section.findById(secID);
+//     console.log(Section)
+
+//     let totalDuration = 0;
+//     // Iterate through each module in the section
+//     for (const moduleId of Section.modules) {
+//       // Find the module by ID
+//       const module = await Module.findById(moduleId);
+//       if (module) {
+//         // Add the module's duration to the total duration
+//         totalDuration += module.duration || 0; // Assuming module.duration exists and is a number
+//       }
+//     }
+//     // Set the sectionDuration to the calculated totalDuration
+//     Section.sectionDuration = totalDuration;
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+/**
+* @description update sectionDuration
+* @route PUT /api/v1/section/calculate-duration/:id
+*/
+const secDuration = asyncHandler(async (req, res, next) => {
+  try {
+    console.log("helllloooooo")
+    const secID = req.params.id;
+    console.log("secID: " + secID)
+    // get section by id
+    const section = await Section.findById(secID);
+    console.log(section)
+
+    //extract module's id
+    const modulesId = section.modules;
+    console.log(modulesId)
+
+    let hours = 0; minutes = 0; seconds = 0;
+    // Iterate through each module in the section
+    for (const moduleId of modulesId) {
+      // Find the module by ID
+      console.log(moduleId);
+      const module = await Module.findById(moduleId);
+      if (module) {
+        //extract module hours,minutes and seconds
+        const modHours = module.duration.hours;
+        const modMinutes = module.duration.minutes;
+        const modSeconds = module.duration.seconds;
+        // sum duration
+        hours += modHours;
+        minutes += modMinutes;
+        seconds += modSeconds;
+      }
+    }
+    // Set the sectionDuration to the calculated totalDuration
+    section.sectionDuration.hours = hours;
+    section.sectionDuration.minutes = minutes;
+    section.sectionDuration.seconds = seconds;
+    //save section
+    await section.save();
+
+    // Send response back
+    const { statusCode, body } = success({
+      message: 'Section duration calculated successfully',
+      data: section.sectionDuration
+    });
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = {
   createSection,
@@ -260,5 +351,6 @@ module.exports = {
   updateSection,
   deleteSection,
   uploadModuleVideos,
-  uploadVideosToCloud
+  uploadVideosToCloud,
+  secDuration
 }

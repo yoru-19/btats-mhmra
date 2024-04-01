@@ -8,7 +8,7 @@ function globalErrorHandler(err, req, res, _next) {
     message: err.message || "Internal Server Error.",
     data: process.env.NODE_ENV !== "production" ? { stack: err.stack } : null,
   };
-  //  console.log(err);
+    console.log(err);
   //  console.log(err.stack);
   res.status(statusCode).json(body);
 }

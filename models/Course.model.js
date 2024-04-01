@@ -73,7 +73,21 @@ const courseSchema = new mongoose.Schema({
   price: {
     type: Number,
     default: 0,
-  }
+  },
+  duration: {
+    hours: {
+      type: Number,
+      default: 0,
+    },
+    minutes: {
+      type: Number,
+      default: 0,
+    },
+    seconds: {
+      type: Number,
+      default: 0,
+    }
+  },
 });
 
 const Course = mongoose.model('Course', courseSchema);

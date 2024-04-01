@@ -22,8 +22,8 @@ exports.createModuleValidator = [
 
 exports.getModuleValidator = [
   param("id")
-  .isMongoId()
-  .withMessage("Invalid module ID"),
+    .isMongoId()
+    .withMessage("Invalid module ID"),
   validatorMiddleware,
 ];
 
@@ -32,6 +32,10 @@ exports.updateModuleValidator = [
     .optional()
     .notEmpty()
     .withMessage("Module name is required"),
+  body("isFree")
+    .optional()
+    .notEmpty()
+    .withMessage("Module price is required"),
   body("videos")
     .optional(),
   validatorMiddleware,

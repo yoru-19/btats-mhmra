@@ -15,7 +15,9 @@ const {
     getLoggedUserWishlist,
     getCoursesInCategory,
     getCoursesByInstructor,
-    clearCatogrySections
+    searchCourse,
+    clearCatogrySections,
+    coursDuration
 } = require("../controller/course.controller");
 
 const { protect, allowedRoles } = require("../services/auth.service");
@@ -40,13 +42,24 @@ router.route("/clearCategCourses/:id")
 router.route("/categoriesId/:categoryId")
     .get(getCoursesInCategory)
 
+router.route("/search")
+    .get(searchCourse)
+    
+router.route("/:id")
+    .get(
+        getCourseValidator,
+        getCourseById)
 // user & instructor & admin
+router.route("/calculate-duration/:id")
+    .put(coursDuration)
+
 router.route("/wishlist")
     .put(addCourseToWishlist)
     .get(getLoggedUserWishlist);
 
 router.route("/")
     .get(getAllCourses)
+
 
 
 // private [Instructor]
@@ -74,12 +87,7 @@ router.route("/:id")
         updateCourse
     );
 
-router.use(allowedRoles("Instructor", "Admin", "User"));
 
-router.route("/:id")
-    .get(
-        getCourseValidator,
-        getCourseById)
 
 
 module.exports = router;
