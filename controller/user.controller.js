@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const sharp = require("sharp");
 const { v4: uuid } = require("uuid");
-
+const ApiFeatures = require('../services/api-features.service');
 const User = require("../models/user.model");
 const UserCredential = require("../models/userCredential.model");
 const {
@@ -95,15 +95,58 @@ exports.createUser = asyncHandler(async (req, res) => {
  * @route GET /api/v1/users
  * @access private [admin]
  */
-exports.getAllUsers = getAll(User);
+exports.getAllUsers = asyncHandler(async (req, res) => {
+  // Build query
+  const documentsCounts = await User.countDocuments(); // Assuming your model is named 'User'
+  const apiFeatures = new ApiFeatures(User.find({}), req.query)
+    .paginate(documentsCounts)
+    .filter()
+    //.search()
+    .limitFields()
+    .sort();
 
+  // Execute query
+  const { mongooseQuery, paginationResult } = apiFeatures;
+  let documents = await mongooseQuery;
+
+  // Check if documents have a Cloudinary photo, if not, replace with default
+  documents = documents.map(User => {
+    if (!User.profileImage) {
+      User.profileImage = 'https://res.cloudinary.com/dcjrolufm/image/upload/v1711983058/defaults/rrn916ctapttfi2tsrtj.png';
+    }
+    return User;
+  });
+
+  const { body, statusCode } = success({
+    data: { results: documents, paginationResult },
+  });
+  res.status(statusCode).json(body);
+});
+
+/**
+ * @description get user by email
+ * @route GET /api/v1/users/email/:email
+ * @access private [admin]
+ */
+exports.getUserByEmail = asyncHandler(async (req, res, next) => {
+  // get email
+  const Email = req.params.email;
+  // get userCred by eamil
+  const user = await UserCredential.findOne({ providerId: Email })
+    .populate({ path: "user", select: "name profileImage roles" })
+  console.log(user)
+
+  const { statusCode, body } = success({
+    data: { results: user }
+  });
+  res.status(statusCode).json(body);
+})
 /**
  * @description get user by id
  * @route GET /api/v1/users/:id
  * @access private [admin]
  */
 exports.getUser = getOne(User);
-
 /**
  * @description (update user by id) profile 
  * @route PUT /api/v1/users/:id
@@ -111,7 +154,6 @@ exports.getUser = getOne(User);
  */
 exports.updateUser = asyncHandler(async (req, res, next) => {
   try {
-    console.log("henaaa")
     // 1- Update userCredentials for provider id and return data after update (new one)
     if (req.body.email) {
       await UserCredentials.findOneAndUpdate(

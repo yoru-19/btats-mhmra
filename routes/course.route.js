@@ -16,6 +16,8 @@ const {
     getCoursesInCategory,
     getCoursesByInstructor,
     searchCourse,
+    searchInstructor,
+    searchCatogery,
     clearCatogrySections,
     coursDuration
 } = require("../controller/course.controller");
@@ -42,9 +44,18 @@ router.route("/clearCategCourses/:id")
 router.route("/categoriesId/:categoryId")
     .get(getCoursesInCategory)
 
-router.route("/search")
+router.route("/search/course")
     .get(searchCourse)
-    
+
+router.route("/search/instructor")
+    .get(searchInstructor)//searchCatogery
+
+router.route("/search/catogery")
+    .get(searchCatogery)
+
+router.route("/getInstructorCourse")
+    .get(getCoursesByInstructor);
+
 router.route("/:id")
     .get(
         getCourseValidator,
@@ -65,8 +76,7 @@ router.route("/")
 // private [Instructor]
 router.use(allowedRoles("Instructor", "Admin"));
 
-router.route("/getInstructorCourse")
-    .get(getCoursesByInstructor);
+
 
 router.route("/")
     .post(

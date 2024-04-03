@@ -50,7 +50,7 @@ const createSection = asyncHandler(async (req, res) => {
 
   // 2- create new section with module IDs and without files
   const newSection = await Section.create({
-    courseId: req.body.courseId
+    courseId: CourseId
   });
 
   // 3- get the course 
@@ -71,20 +71,19 @@ const createSection = asyncHandler(async (req, res) => {
   });
   res.status(statusCode).json(body);
 });
-
 /**
 * @description get all sections
 * @route GET /api/v1/section
 * @access private [Instructor, Admin]
 */
-const getAllSections = asyncHandler(async (req, res) => {
+const getAllSections = asyncHandler(async (req, res, next) => {
   // 1- get all sections
   const sections = await Section.find().populate('modules', 'name');//populate to courses and modules
 
   // 3- check if exists
   if (!sections) {
     return next(recordNotFound({ message: `no section is found` }))
-  };
+  }
   // 3- send response back
   const { statusCode, body } = success({
     message: "get all sections",
@@ -154,8 +153,8 @@ const updateSection = asyncHandler(async (req, res, next) => {
     // 2- Get the section by id
     const sec = await Section.findById(sectionId);
 
-    if(!sec){
-      return next(recordNotFound({message:"there is no section with id " + sectionId}))
+    if (!sec) {
+      return next(recordNotFound({ message: "there is no section with id " + sectionId }))
     }
     // 3- get sections modules 
     const moduleIds = sec.modules;
@@ -220,7 +219,6 @@ const updateSection = asyncHandler(async (req, res, next) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
 /**
 * @description delete section
 * @route DELETE /api/v1/section
@@ -234,7 +232,7 @@ const deleteSection = asyncHandler(async (req, res, next) => {
     // 2- check if section exists
     if (!section) {
       console.log(section)
-      return next(RecordNotFound({ message: `section with id ${sectionId} is not found` }));
+      return next(recordNotFound({ message: `section with id ${sectionId} is not found` }));
     }
 
     // 3- Get associated module IDs
@@ -242,7 +240,7 @@ const deleteSection = asyncHandler(async (req, res, next) => {
 
     // 4- Delete each module
     for (const moduleId of moduleIds) {
-      const deletedModule = await Modules.findByIdAndDelete(moduleId);
+      const deletedModule = await Module.findByIdAndDelete(moduleId);
       if (!deletedModule) {
         console.log(`Module with ID ${moduleId} not found.`);
       }
@@ -268,30 +266,6 @@ const deleteSection = asyncHandler(async (req, res, next) => {
   }
 });
 
-// const secDur = asyncHandler(async (req, res, next) => {
-//   try {
-//     console.log("helllloooooo")
-//     const secID = req.params.id;
-
-//     const Section= await Section.findById(secID);
-//     console.log(Section)
-
-//     let totalDuration = 0;
-//     // Iterate through each module in the section
-//     for (const moduleId of Section.modules) {
-//       // Find the module by ID
-//       const module = await Module.findById(moduleId);
-//       if (module) {
-//         // Add the module's duration to the total duration
-//         totalDuration += module.duration || 0; // Assuming module.duration exists and is a number
-//       }
-//     }
-//     // Set the sectionDuration to the calculated totalDuration
-//     Section.sectionDuration = totalDuration;
-//   } catch (error) {
-//     next(error);
-//   }
-// });
 /**
 * @description update sectionDuration
 * @route PUT /api/v1/section/calculate-duration/:id

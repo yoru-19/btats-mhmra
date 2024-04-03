@@ -1,6 +1,5 @@
 //section.model.js
 const mongoose = require('mongoose');
-const Module = require('../models/Module.model');
 const sectionSchema = new mongoose.Schema({
 
   title: {

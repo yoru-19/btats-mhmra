@@ -15,6 +15,7 @@ const {
   deleteLoggedUser,
   uploadProfileImage,
   resizeProfileImage,
+  getUserByEmail
 } = require("../controller/user.controller");
 const { protect, allowedRoles } = require("../services/auth.service");
 const {
@@ -60,10 +61,13 @@ router
     createUserValidator,
     createUser
   );
+router
+  .route("/:email")
+  .get(getUser)
 
 router
   .route("/:id")
-  .get(getUserValidator, getUser)
+  //.get(getUserValidator, getUser)
   .put(uploadProfileImage, resizeProfileImage, updateUserValidator, updateUser)
   .delete(deleteUserValidator, deleteUser);
 

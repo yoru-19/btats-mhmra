@@ -69,7 +69,7 @@ exports.updateUserValidator = [
     .optional()
     .isMobilePhone(["ar-EG"])
     .withMessage("phone number must be from Egypt"),
-    body("gender")
+  body("gender")
     .optional()
     .custom((input) => {
       return ["Male", "Female"].includes(input);
@@ -81,11 +81,12 @@ exports.updateUserValidator = [
       return input === "Instructor" || input === "User" || input === "Admin";
     })
     .withMessage("role must be admin or instractor or user"),
-    body("bio")
-  .notEmpty()
-  .withMessage("Bio is required")
-  .isLength({ max: 500 })
-  .withMessage("Bio must be at most 500 characters"),
+  body("bio")
+    .optional()
+    .notEmpty()
+    .withMessage("Bio is required")
+    .isLength({ max: 500 })
+    .withMessage("Bio must be at most 500 characters"),
   validatorMiddleware,
   body("profileImg").optional(),
   validatorMiddleware,
@@ -105,7 +106,7 @@ exports.updateUserPasswordValidator = [
     .custom((input, { req }) => {
       return req.body.password === input;
     }),
-    validatorMiddleware,
+  validatorMiddleware,
 ];
 
 exports.deleteUserValidator = [
@@ -141,49 +142,49 @@ exports.updateLoggedUserValidator = [
     .withMessage("Invalid gender"),
   body("profileImage").optional(),
   body("bio")
-  .optional()
-  .notEmpty()
-  .withMessage("Bio is required")
-  .isLength({ max: 500 })
-  .withMessage("Bio must be at most 500 characters"),
+    .optional()
+    .notEmpty()
+    .withMessage("Bio is required")
+    .isLength({ max: 500 })
+    .withMessage("Bio must be at most 500 characters"),
   body("jobTitle").
-        optional().
-        notEmpty().
-        withMessage("Job Title is required").
-        isLength({ min: 3 }).
-        withMessage("too short title"),
-    body("jobDescription").
-        notEmpty().
-        withMessage("Job description is required").
-        isLength({ min: 5 }).
-        withMessage("too short description").
-        optional(),
-        body("facebookUrl")
-        .optional()
-        .custom((value) => {
-          if (value && !isValidUrl(value)) {
-            throw new Error('Invalid Facebook URL');
-          }
-          return true;
-        }),
-    
-      body("linkedinUrl")
-        .optional()
-        .custom((value) => {
-          if (value && !isValidUrl(value)) {
-            throw new Error('Invalid LinkedIn URL');
-          }
-          return true;
-        }),
-    
-      body("instagramUrl")
-        .optional()
-        .custom((value) => {
-          if (value && !isValidUrl(value)) {
-            throw new Error('Invalid Instagram URL');
-          }
-          return true;
-        }),
+    optional().
+    notEmpty().
+    withMessage("Job Title is required").
+    isLength({ min: 3 }).
+    withMessage("too short title"),
+  body("jobDescription").
+    notEmpty().
+    withMessage("Job description is required").
+    isLength({ min: 5 }).
+    withMessage("too short description").
+    optional(),
+  body("facebookUrl")
+    .optional()
+    .custom((value) => {
+      if (value && !isValidUrl(value)) {
+        throw new Error('Invalid Facebook URL');
+      }
+      return true;
+    }),
+
+  body("linkedinUrl")
+    .optional()
+    .custom((value) => {
+      if (value && !isValidUrl(value)) {
+        throw new Error('Invalid LinkedIn URL');
+      }
+      return true;
+    }),
+
+  body("instagramUrl")
+    .optional()
+    .custom((value) => {
+      if (value && !isValidUrl(value)) {
+        throw new Error('Invalid Instagram URL');
+      }
+      return true;
+    }),
   validatorMiddleware,
 ];
 // Function to check if a given string is a valid URL
@@ -213,5 +214,5 @@ exports.updateLoggedUserPasswordValidator = [
     .custom((input, { req }) => {
       return req.body.newPassword === input;
     }),
-    validatorMiddleware,
+  validatorMiddleware,
 ];

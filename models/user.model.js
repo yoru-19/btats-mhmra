@@ -14,7 +14,6 @@ const userSchema = new mongoose.Schema(
     },
     bio: String,
     phone: String,
-    profileImage: String,
     jobTitle: String,
     jobDescription: String,
     facebookUrl: String,
@@ -26,7 +25,7 @@ const userSchema = new mongoose.Schema(
     },
     roles: {
       type: String,
-      enum: ["Instructor", "User","Admin"],
+      enum: ["Instructor", "User", "Admin"],
       default: "User",
     },
     wishlist: [{
@@ -38,7 +37,13 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course',
     }],
+
+    profileImage: {
+      type: String,
+      default: 'https://res.cloudinary.com/dcjrolufm/image/upload/v1711983058/defaults/rrn916ctapttfi2tsrtj.png' // Default link
+    },
   },
+
   {
     timestamps: true,
   }

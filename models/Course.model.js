@@ -71,8 +71,15 @@ const courseSchema = new mongoose.Schema({
     default: 0,
   },
   price: {
-    type: Number,
-    default: 0,
+    amount: {
+      type: Number,
+      default: 0,
+    },
+    currency: {
+      type: String,
+      enum: ["EGP", "USD"], 
+      default: "EGP", 
+    },
   },
   duration: {
     hours: {
